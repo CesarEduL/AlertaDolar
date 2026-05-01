@@ -5,12 +5,12 @@ plugins {
 
 android {
     namespace = "com.waytolearn.alertadolar"
-    compileSdk = 34
+    compileSdk = 35
 
     defaultConfig {
         applicationId = "com.waytolearn.alertadolar"
         minSdk = 24
-        targetSdk = 34
+        targetSdk = 35
         versionCode = 1
         versionName = "1.0"
 
@@ -44,4 +44,8 @@ dependencies {
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.espresso.core)
+//libs
+    implementation(libs.androidx.work.runtime.ktx)
+    implementation(libs.retrofit.main)
+    implementation(libs.retrofit.gson)
 }
