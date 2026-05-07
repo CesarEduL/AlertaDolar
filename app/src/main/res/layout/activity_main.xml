@@ -21,7 +21,7 @@
             android:id="@+id/lblTitulo"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="Monitor de Divisas"
+            android:text="@string/title_monitor"
             android:textSize="24sp"
             android:textStyle="bold"
             app:layout_constraintStart_toStartOf="parent"
@@ -32,7 +32,7 @@
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_marginTop="24dp"
-            android:text="Selecciona moneda de origen:"
+            android:text="@string/label_select_currency"
             app:layout_constraintStart_toStartOf="parent"
             app:layout_constraintTop_toBottomOf="@id/lblTitulo" />
 
@@ -66,7 +66,7 @@
                 <TextView
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:text="Precio en Soles (PEN)"
+                    android:text="@string/label_price_pen"
                     android:textAllCaps="true"
                     android:textSize="12sp" />
 
@@ -74,7 +74,7 @@
                     android:id="@+id/txtPrecioActual"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:text="S/ 0.00"
+                    android:text="@string/price_placeholder"
                     android:textColor="@android:color/holo_green_dark"
                     android:textSize="48sp"
                     android:textStyle="bold" />
@@ -86,7 +86,7 @@
             android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:layout_marginTop="16dp"
-            android:text="Cargando métricas del día..."
+            android:text="@string/metrics_loading"
             android:textAlignment="center"
             android:textSize="14sp"
             app:layout_constraintEnd_toEndOf="parent"
@@ -107,7 +107,7 @@
             android:layout_height="wrap_content"
             android:layout_marginTop="24dp"
             android:layout_marginEnd="16dp"
-            android:text="Notificarme cuando baje de:"
+            android:text="@string/label_notify_below"
             app:layout_constraintEnd_toStartOf="@+id/editPrecioAlerta"
             app:layout_constraintStart_toStartOf="parent"
             app:layout_constraintTop_toBottomOf="@id/divisor" />
@@ -116,7 +116,7 @@
             android:id="@+id/editPrecioAlerta"
             android:layout_width="100dp"
             android:layout_height="wrap_content"
-            android:hint="3.40"
+            android:hint="@string/hint_threshold"
             android:inputType="numberDecimal"
             android:textAlignment="center"
             app:layout_constraintBaseline_toBaselineOf="@id/lblAlerta"
@@ -127,7 +127,7 @@
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_marginTop="40dp"
-            android:text="Actualizar ahora"
+            android:text="@string/action_refresh"
             app:layout_constraintBottom_toBottomOf="parent"
             app:layout_constraintEnd_toEndOf="parent"
             app:layout_constraintStart_toStartOf="parent"

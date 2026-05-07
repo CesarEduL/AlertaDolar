@@ -1,3 +1,29 @@
 <resources>
     <string name="app_name">AlertaDolar</string>
+
+    <string name="title_monitor">Monitor de Divisas</string>
+    <string name="label_select_currency">Selecciona moneda de origen:</string>
+    <string name="label_price_pen">Precio en Soles (PEN)</string>
+    <string name="price_placeholder">S/ 0.00</string>
+    <string name="metrics_loading">Calculando métricas…</string>
+    <string name="metrics_ready">Mín (7d): %1$s  |  Máx (7d): %2$s</string>
+    <string name="metrics_partial">Precio actualizado. No se pudo cargar el histórico de 7 días.</string>
+    <string name="label_notify_below">Notificarme cuando baje de:</string>
+    <string name="hint_threshold">3.40</string>
+    <string name="action_refresh">Actualizar ahora</string>
+    <string name="loading_price">…</string>
+    <string name="error_title">Error</string>
+    <string name="error_network">Revisa tu conexión</string>
+    <string name="error_network_with_reason">No se pudo obtener el tipo de cambio.\n%1$s</string>
+    <string name="price_format">S/ %1$.2f</string>
+
+    <string name="notification_channel_id" translatable="false">dolar_alerts</string>
+    <string name="notification_channel_name">Alertas de divisas</string>
+    <string name="notification_channel_description">Aviso cuando el precio baja del límite configurado</string>
+    <string name="notification_title">¡Alerta de precio: %1$s!</string>
+    <string name="notification_body">El precio actual es %1$s. Está por debajo de tu límite.</string>
+
+    <string name="log_alert_fired">Alerta activada. Precio %1$.4f por debajo del umbral %2$.4f</string>
+    <string name="log_no_alert">Precio: %1$.4f. No se requiere notificación.</string>
+    <string name="log_price_unavailable">No se pudo obtener el precio para evaluar la alerta.</string>
 </resources>

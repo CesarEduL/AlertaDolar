@@ -1,3 +1,5 @@
+import java.util.Properties
+
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.android)
@@ -7,6 +9,10 @@ android {
     namespace = "com.waytolearn.alertadolar"
     compileSdk = 35
 
+    buildFeatures {
+        buildConfig = true
+    }
+
     defaultConfig {
         applicationId = "com.waytolearn.alertadolar"
         minSdk = 24
@@ -15,6 +21,17 @@ android {
         versionName = "1.0"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
+
+        // Opcional: en local.properties añade EXCHANGE_RATE_API_KEY=tu_clave para exchangerate-api.com
+        val localProperties = Properties()
+        val localFile = rootProject.file("local.properties")
+        if (localFile.exists()) {
+            localFile.inputStream().use { localProperties.load(it) }
+        }
+        val exchangeKey = localProperties.getProperty("EXCHANGE_RATE_API_KEY", "")
+            .replace("\\", "\\\\")
+            .replace("\"", "\\\"")
+        buildConfigField("String", "EXCHANGE_RATE_API_KEY", "\"$exchangeKey\"")
     }
 
     buildTypes {

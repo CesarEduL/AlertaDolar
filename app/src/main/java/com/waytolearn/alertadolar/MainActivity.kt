@@ -1,7 +1,6 @@
 package com.waytolearn.alertadolar
 
 import android.Manifest
-import android.annotation.SuppressLint
 import android.content.Context
 import android.content.pm.PackageManager
 import android.os.Build
@@ -9,19 +8,25 @@ import android.os.Bundle
 import android.text.Editable
 import android.text.TextWatcher
 import android.view.View
-import android.widget.*
+import android.widget.AdapterView
+import android.widget.ArrayAdapter
+import android.widget.Button
+import android.widget.EditText
+import android.widget.Spinner
+import android.widget.TextView
+import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.lifecycleScope
-import androidx.work.*
+import androidx.work.Constraints
+import androidx.work.ExistingPeriodicWorkPolicy
+import androidx.work.NetworkType
+import androidx.work.PeriodicWorkRequestBuilder
+import androidx.work.WorkManager
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
-import org.json.JSONObject
-import java.net.URL
-import java.text.SimpleDateFormat
-import java.util.*
 import java.util.concurrent.TimeUnit
 
 class MainActivity : AppCompatActivity() {
@@ -29,56 +34,55 @@ class MainActivity : AppCompatActivity() {
     private lateinit var txtPrecioActual: TextView
     private lateinit var txtMetricas: TextView
     private lateinit var editPrecioAlerta: EditText
-    private val monedas = arrayOf("USD", "EUR", "GBP", "BRL", "CLP")
+    private lateinit var monedas: Array<String>
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
 
-        // Inicializar vistas
+        monedas = resources.getStringArray(R.array.currency_codes)
+
         txtPrecioActual = findViewById(R.id.txtPrecioActual)
         txtMetricas = findViewById(R.id.txtMetricas)
         editPrecioAlerta = findViewById(R.id.editPrecioAlerta)
         val spinner: Spinner = findViewById(R.id.spinnerMonedas)
         val btnActualizar: Button = findViewById(R.id.btnActualizar)
 
-        val prefs = getSharedPreferences("ConfigDolar", Context.MODE_PRIVATE)
+        val prefs = getSharedPreferences(AppPreferences.FILE_NAME, Context.MODE_PRIVATE)
 
-        // 1. Configurar Selector de Monedas (Spinner)
         val adapter = ArrayAdapter(this, android.R.layout.simple_spinner_item, monedas)
         adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item)
         spinner.adapter = adapter
 
-        // Recuperar moneda guardada anteriormente
-        val monedaGuardada = prefs.getString("moneda_origen", "USD")
-        val spinnerPosition = adapter.getPosition(monedaGuardada)
+        val monedaGuardada = prefs.getString(AppPreferences.KEY_CURRENCY, monedas[0]) ?: monedas[0]
+        val spinnerPosition = adapter.getPosition(monedaGuardada).coerceAtLeast(0)
         spinner.setSelection(spinnerPosition)
 
         spinner.onItemSelectedListener = object : AdapterView.OnItemSelectedListener {
             override fun onItemSelected(parent: AdapterView<*>?, view: View?, position: Int, id: Long) {
                 val seleccion = monedas[position]
-                prefs.edit().putString("moneda_origen", seleccion).apply()
+                prefs.edit().putString(AppPreferences.KEY_CURRENCY, seleccion).apply()
                 obtenerPrecioYMétricas(seleccion)
             }
+
             override fun onNothingSelected(parent: AdapterView<*>?) {}
         }
 
-        // 2. Configurar el campo de Precio Alerta (EditText)
-        val umbralGuardado = prefs.getFloat("umbral_alerta", 3.40f)
+        val umbralGuardado = prefs.getFloat(AppPreferences.KEY_THRESHOLD, DEFAULT_THRESHOLD)
         editPrecioAlerta.setText(umbralGuardado.toString())
 
         editPrecioAlerta.addTextChangedListener(object : TextWatcher {
             override fun afterTextChanged(s: Editable?) {
                 val input = s.toString().toFloatOrNull()
                 if (input != null) {
-                    prefs.edit().putFloat("umbral_alerta", input).apply()
+                    prefs.edit().putFloat(AppPreferences.KEY_THRESHOLD, input).apply()
                 }
             }
+
             override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) {}
             override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) {}
         })
 
-        // 3. Botón Actualizar
         btnActualizar.setOnClickListener {
             obtenerPrecioYMétricas(spinner.selectedItem.toString())
         }
@@ -87,45 +91,39 @@ class MainActivity : AppCompatActivity() {
         iniciarRastreador()
     }
 
-    @SuppressLint("SetTextI18n")
     private fun obtenerPrecioYMétricas(base: String) {
-        txtPrecioActual.text = "..."
-        txtMetricas.text = "Calculando métricas..."
+        txtPrecioActual.text = getString(R.string.loading_price)
+        txtMetricas.text = getString(R.string.metrics_loading)
 
         lifecycleScope.launch(Dispatchers.IO) {
             try {
-                // 1. Obtener precio actual (Frankfurter)
-                val respActual = URL("https://api.frankfurter.app/latest?from=$base&to=PEN").readText()
-                val precioActual = JSONObject(respActual).getJSONObject("rates").getDouble("PEN")
-
-                // 2. Obtener historial (últimos 7 días)
-                val sdf = SimpleDateFormat("yyyy-MM-dd", Locale.US)
-                val cal = Calendar.getInstance()
-                val fechaHoy = sdf.format(cal.time)
-                cal.add(Calendar.DAY_OF_YEAR, -7)
-                val fechaPasada = sdf.format(cal.time)
-
-                val respHist = URL("https://api.frankfurter.app/$fechaPasada..$fechaHoy?from=$base&to=PEN").readText()
-                val rates = JSONObject(respHist).getJSONObject("rates")
-
-                val listaPrecios = mutableListOf<Double>()
-                val keys = rates.keys()
-                while (keys.hasNext()) {
-                    val fecha = keys.next()
-                    listaPrecios.add(rates.getJSONObject(fecha).getDouble("PEN"))
-                }
-
-                val maximo = listaPrecios.maxOrNull() ?: precioActual
-                val minimo = listaPrecios.minOrNull() ?: precioActual
+                val precioActual = ExchangeRateRepository.fetchLatestPenPerUnit(base)
+                val minMax = ExchangeRateRepository.fetchSevenDayMinMaxPen(base)
 
                 withContext(Dispatchers.Main) {
-                    txtPrecioActual.text = "S/ %.2f".format(precioActual)
-                    txtMetricas.text = "Mín (7d): S/ %.2f  |  Máx (7d): S/ %.2f".format(minimo, maximo)
+                    txtPrecioActual.text = getString(R.string.price_format, precioActual)
+                    txtMetricas.text = if (minMax != null) {
+                        getString(
+                            R.string.metrics_ready,
+                            getString(R.string.price_format, minMax.first),
+                            getString(R.string.price_format, minMax.second)
+                        )
+                    } else {
+                        getString(R.string.metrics_partial)
+                    }
                 }
             } catch (e: Exception) {
                 withContext(Dispatchers.Main) {
-                    txtPrecioActual.text = "Error"
-                    txtMetricas.text = "Revisa tu conexión a internet"
+                    txtPrecioActual.text = getString(R.string.error_title)
+                    txtMetricas.text = getString(
+                        R.string.error_network_with_reason,
+                        e.message ?: getString(R.string.error_network)
+                    )
+                    Toast.makeText(
+                        this@MainActivity,
+                        R.string.error_network,
+                        Toast.LENGTH_SHORT
+                    ).show()
                 }
             }
         }
@@ -134,8 +132,13 @@ class MainActivity : AppCompatActivity() {
     private fun solicitarPermisoNotificaciones() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
             if (ContextCompat.checkSelfPermission(this, Manifest.permission.POST_NOTIFICATIONS) !=
-                PackageManager.PERMISSION_GRANTED) {
-                ActivityCompat.requestPermissions(this, arrayOf(Manifest.permission.POST_NOTIFICATIONS), 101)
+                PackageManager.PERMISSION_GRANTED
+            ) {
+                ActivityCompat.requestPermissions(
+                    this,
+                    arrayOf(Manifest.permission.POST_NOTIFICATIONS),
+                    REQUEST_NOTIFICATIONS
+                )
             }
         }
     }
@@ -150,9 +153,15 @@ class MainActivity : AppCompatActivity() {
             .build()
 
         WorkManager.getInstance(this).enqueueUniquePeriodicWork(
-            "MiRastreadorDolar",
+            WORK_NAME_TRACKER,
             ExistingPeriodicWorkPolicy.KEEP,
             request
         )
+    }
+
+    companion object {
+        private const val DEFAULT_THRESHOLD = 3.40f
+        private const val REQUEST_NOTIFICATIONS = 101
+        private const val WORK_NAME_TRACKER = "MiRastreadorDolar"
     }
 }
