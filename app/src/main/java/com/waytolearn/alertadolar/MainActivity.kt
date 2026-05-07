@@ -2,6 +2,7 @@ package com.waytolearn.alertadolar
 
 import android.Manifest
 import android.content.Context
+import android.content.Intent
 import android.content.pm.PackageManager
 import android.os.Build
 import android.os.Bundle
@@ -12,6 +13,7 @@ import android.widget.AdapterView
 import android.widget.ArrayAdapter
 import android.widget.Button
 import android.widget.EditText
+import android.widget.ImageButton
 import android.widget.Spinner
 import android.widget.TextView
 import android.widget.Toast
@@ -19,15 +21,9 @@ import androidx.appcompat.app.AppCompatActivity
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.lifecycleScope
-import androidx.work.Constraints
-import androidx.work.ExistingPeriodicWorkPolicy
-import androidx.work.NetworkType
-import androidx.work.PeriodicWorkRequestBuilder
-import androidx.work.WorkManager
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
-import java.util.concurrent.TimeUnit
 
 class MainActivity : AppCompatActivity() {
 
@@ -47,6 +43,7 @@ class MainActivity : AppCompatActivity() {
         editPrecioAlerta = findViewById(R.id.editPrecioAlerta)
         val spinner: Spinner = findViewById(R.id.spinnerMonedas)
         val btnActualizar: Button = findViewById(R.id.btnActualizar)
+        val btnInbox: ImageButton = findViewById(R.id.btnInbox)
 
         val prefs = getSharedPreferences(AppPreferences.FILE_NAME, Context.MODE_PRIVATE)
 
@@ -87,6 +84,10 @@ class MainActivity : AppCompatActivity() {
             obtenerPrecioYMétricas(spinner.selectedItem.toString())
         }
 
+        btnInbox.setOnClickListener {
+            startActivity(Intent(this, NotificationsActivity::class.java))
+        }
+
         solicitarPermisoNotificaciones()
         iniciarRastreador()
     }
@@ -113,6 +114,10 @@ class MainActivity : AppCompatActivity() {
                     }
                 }
             } catch (e: Exception) {
+                InAppNotificationStore.add(
+                    this@MainActivity,
+                    getString(R.string.inbox_log_ui_error, e.message ?: getString(R.string.error_network))
+                )
                 withContext(Dispatchers.Main) {
                     txtPrecioActual.text = getString(R.string.error_title)
                     txtMetricas.text = getString(
@@ -144,24 +149,12 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun iniciarRastreador() {
-        val constraints = Constraints.Builder()
-            .setRequiredNetworkType(NetworkType.CONNECTED)
-            .build()
-
-        val request = PeriodicWorkRequestBuilder<DolarWorker>(12, TimeUnit.HOURS)
-            .setConstraints(constraints)
-            .build()
-
-        WorkManager.getInstance(this).enqueueUniquePeriodicWork(
-            WORK_NAME_TRACKER,
-            ExistingPeriodicWorkPolicy.KEEP,
-            request
-        )
+        // Nuevo comportamiento: se programa por hora local fija (10:00 y 20:00).
+        DailyNotificationScheduler.scheduleNext(this)
     }
 
     companion object {
         private const val DEFAULT_THRESHOLD = 3.40f
         private const val REQUEST_NOTIFICATIONS = 101
-        private const val WORK_NAME_TRACKER = "MiRastreadorDolar"
     }
 }
