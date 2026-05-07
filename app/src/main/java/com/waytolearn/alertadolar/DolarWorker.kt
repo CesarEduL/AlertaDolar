@@ -2,7 +2,11 @@ package com.waytolearn.alertadolar
 
 import android.app.NotificationChannel
 import android.app.NotificationManager
+import android.content.ContentResolver
 import android.content.Context
+import android.media.AudioAttributes
+import android.media.AudioManager
+import android.net.Uri
 import android.os.Build
 import android.util.Log
 import androidx.core.app.NotificationCompat
@@ -40,6 +44,13 @@ class DolarWorker(context: Context, params: WorkerParameters) : Worker(context, 
     private fun mostrarNotificacion(ctx: Context, precio: Double, moneda: String) {
         val manager = ctx.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
         val channelId = ctx.getString(R.string.notification_channel_id)
+        val soundUri = Uri.parse(
+            "${ContentResolver.SCHEME_ANDROID_RESOURCE}://${ctx.packageName}/${R.raw.alerta_dolar}"
+        )
+        val audioAttributes = AudioAttributes.Builder()
+            .setUsage(AudioAttributes.USAGE_NOTIFICATION)
+            .setContentType(AudioAttributes.CONTENT_TYPE_SONIFICATION)
+            .build()
 
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             val channel = NotificationChannel(
@@ -48,6 +59,7 @@ class DolarWorker(context: Context, params: WorkerParameters) : Worker(context, 
                 NotificationManager.IMPORTANCE_HIGH
             ).apply {
                 description = ctx.getString(R.string.notification_channel_description)
+                setSound(soundUri, audioAttributes)
             }
             manager.createNotificationChannel(channel)
         }
@@ -59,6 +71,12 @@ class DolarWorker(context: Context, params: WorkerParameters) : Worker(context, 
             .setContentText(ctx.getString(R.string.notification_body, precioTexto))
             .setPriority(NotificationCompat.PRIORITY_HIGH)
             .setAutoCancel(true)
+            .apply {
+                if (Build.VERSION.SDK_INT < Build.VERSION_CODES.O) {
+                    @Suppress("DEPRECATION")
+                    setSound(soundUri, AudioManager.STREAM_NOTIFICATION)
+                }
+            }
             .build()
 
         manager.notify(NOTIFICATION_ID, notification)
