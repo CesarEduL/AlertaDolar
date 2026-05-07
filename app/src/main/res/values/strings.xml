@@ -27,7 +27,9 @@
 
     <string name="inbox_open">Abrir bandeja interna de notificaciones</string>
     <string name="inbox_title">Notificaciones internas</string>
-    <string name="inbox_clear_all">Borrar todo</string>
+    <string name="inbox_clear_all">Borrar todas las notificaciones internas</string>
+    <string name="inbox_force_system_notify">Mostrar esta alerta de cambio como notificación del sistema</string>
+    <string name="inbox_force_sent_hint">Notificación enviada</string>
     <string name="inbox_log_ui_error">Error en pantalla principal: %1$s</string>
 
     <string name="log_alert_fired">Alerta activada. Precio %1$.4f por debajo del umbral %2$.4f</string>

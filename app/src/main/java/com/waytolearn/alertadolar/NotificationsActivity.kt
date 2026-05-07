@@ -1,25 +1,25 @@
 package com.waytolearn.alertadolar
 
 import android.os.Bundle
-import android.view.View
-import android.widget.ArrayAdapter
-import android.widget.Button
-import android.widget.ListView
+import android.widget.ImageButton
+import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
+import androidx.recyclerview.widget.LinearLayoutManager
+import androidx.recyclerview.widget.RecyclerView
+import androidx.recyclerview.widget.DividerItemDecoration
 
 class NotificationsActivity : AppCompatActivity() {
 
-    private lateinit var listView: ListView
-    private lateinit var adapter: ArrayAdapter<String>
+    private lateinit var recyclerView: RecyclerView
+    private lateinit var adapter: InternalNotificationsAdapter
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_notifications)
 
-        // Respeta status bar / navigation bar (evita superposiciones).
-        val root: View = findViewById(R.id.rootNotifications)
+        val root = findViewById<android.view.View>(R.id.rootNotifications)
         val basePadding = root.paddingLeft
         ViewCompat.setOnApplyWindowInsetsListener(root) { v, insets ->
             val bars = insets.getInsets(WindowInsetsCompat.Type.systemBars())
@@ -32,11 +32,27 @@ class NotificationsActivity : AppCompatActivity() {
             insets
         }
 
-        listView = findViewById(R.id.listInAppNotifications)
-        val btnClearAll: Button = findViewById(R.id.btnClearAll)
+        recyclerView = findViewById(R.id.recyclerInAppNotifications)
+        val btnClearAll: ImageButton = findViewById(R.id.btnClearAll)
 
-        adapter = ArrayAdapter(this, android.R.layout.simple_list_item_1, mutableListOf())
-        listView.adapter = adapter
+        adapter = InternalNotificationsAdapter { item ->
+            if (!item.isPriceChange) return@InternalNotificationsAdapter
+            CurrencyNotificationHelper.post(
+                this,
+                InAppNotificationStore.summaryFromStoredMessage(item.message),
+                item.message.trim()
+            )
+            Toast.makeText(
+                this,
+                R.string.inbox_force_sent_hint,
+                Toast.LENGTH_SHORT
+            ).show()
+        }
+        recyclerView.layoutManager = LinearLayoutManager(this)
+        recyclerView.adapter = adapter
+        recyclerView.addItemDecoration(
+            DividerItemDecoration(this, DividerItemDecoration.VERTICAL)
+        )
 
         btnClearAll.setOnClickListener {
             InAppNotificationStore.clear(this)
@@ -52,10 +68,6 @@ class NotificationsActivity : AppCompatActivity() {
     }
 
     private fun refresh() {
-        val rows = InAppNotificationStore.getAll(this)
-            .map { InAppNotificationStore.formatForList(it) }
-        adapter.clear()
-        adapter.addAll(rows)
-        adapter.notifyDataSetChanged()
+        adapter.submit(InAppNotificationStore.getAll(this))
     }
 }
