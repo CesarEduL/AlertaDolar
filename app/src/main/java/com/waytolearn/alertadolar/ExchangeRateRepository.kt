@@ -1,5 +1,6 @@
 package com.waytolearn.alertadolar
 
+import org.json.JSONArray
 import org.json.JSONObject
 import java.io.IOException
 import java.net.HttpURLConnection
@@ -7,10 +8,11 @@ import java.net.URL
 import java.text.SimpleDateFormat
 import java.util.Calendar
 import java.util.Locale
+import java.util.TimeZone
 
 /**
  * Fuente única de tipos de cambio: ExchangeRate-API (si hay clave en [BuildConfig]) y Frankfurter como respaldo.
- * El histórico 7d usa solo Frankfurter; si falla, la UI puede mostrar solo el precio actual.
+ * Frankfurter v1 no incluye PEN; el tipo y el histórico en soles usan Frankfurter API v2 (api.frankfurter.dev/v2).
  *
  * Usa [HttpURLConnection] para evitar conflictos de versiones del OkHttp que trae Retrofit como transitivo.
  */
@@ -19,11 +21,13 @@ object ExchangeRateRepository {
     private const val USER_AGENT = "AlertaDolar/1.0 (Android)"
     private const val CONNECT_TIMEOUT_MS = 15_000
     private const val READ_TIMEOUT_MS = 15_000
+    private const val FRANKFURTER_V2 = "https://api.frankfurter.dev/v2"
+    private const val QUOTE_PEN = "PEN"
 
     @Throws(IOException::class)
     fun fetchLatestPenPerUnit(base: String): Double {
         // Generado en compile time (namespace = com.waytolearn.alertadolar). Sync Gradle / Rebuild si el IDE no lo ve.
-        val key = BuildConfig.EXCHANGE_RATE_API_KEY
+        val key = com.waytolearn.alertadolar.BuildConfig.EXCHANGE_RATE_API_KEY
         if (key.isNotBlank()) {
             runCatching { fetchFromExchangeRateApi(key, base) }
                 .onSuccess { return it }
@@ -38,19 +42,22 @@ object ExchangeRateRepository {
         runCatching { fetchSevenDayMinMaxPenInternal(base) }.getOrNull()
 
     private fun fetchSevenDayMinMaxPenInternal(base: String): Pair<Double, Double>? {
-        val sdf = SimpleDateFormat("yyyy-MM-dd", Locale.US)
-        val cal = Calendar.getInstance()
+        val sdf = SimpleDateFormat("yyyy-MM-dd", Locale.US).apply {
+            timeZone = TimeZone.getTimeZone("UTC")
+        }
+        val cal = Calendar.getInstance(TimeZone.getTimeZone("UTC"))
         val end = sdf.format(cal.time)
         cal.add(Calendar.DAY_OF_YEAR, -7)
         val start = sdf.format(cal.time)
-        val url = "https://api.frankfurter.app/$start..$end?from=$base&to=PEN"
-        val json = JSONObject(httpGet(url))
-        val rates = json.getJSONObject("rates")
+        val url =
+            "$FRANKFURTER_V2/rates?from=$start&to=$end&base=$base&quotes=$QUOTE_PEN"
+        val rows = JSONArray(httpGet(url))
         val prices = mutableListOf<Double>()
-        val keys = rates.keys()
-        while (keys.hasNext()) {
-            val day = keys.next()
-            prices.add(rates.getJSONObject(day).getDouble("PEN"))
+        for (i in 0 until rows.length()) {
+            val row = rows.getJSONObject(i)
+            if (row.optString("quote", QUOTE_PEN) == QUOTE_PEN) {
+                prices.add(row.getDouble("rate"))
+            }
         }
         if (prices.isEmpty()) return null
         val min = prices.minOrNull() ?: return null
@@ -71,9 +78,9 @@ object ExchangeRateRepository {
     }
 
     private fun fetchFromFrankfurterLatest(base: String): Double {
-        val url = "https://api.frankfurter.app/latest?from=$base&to=PEN"
+        val url = "$FRANKFURTER_V2/rate/$base/$QUOTE_PEN"
         val json = JSONObject(httpGet(url))
-        return json.getJSONObject("rates").getDouble("PEN")
+        return json.getDouble("rate")
     }
 
     private fun httpGet(urlString: String): String {
