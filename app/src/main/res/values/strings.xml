@@ -19,11 +19,11 @@
 
     <string name="notification_channel_id" translatable="false">dolar_daily_alerts_ogg</string>
     <string name="notification_channel_name">Alertas de divisas</string>
-    <string name="notification_channel_description">Aviso cuando el precio baja del límite configurado</string>
-    <string name="notification_title_changed">Actualización %1$s (cambió)</string>
-    <string name="notification_title_unchanged">Actualización %1$s (sin cambios)</string>
-    <string name="notification_body_daily_status">El %1$s está %2$s, aún no baja de %3$s.</string>
-    <string name="notification_body_below_threshold">El %1$s está %2$s y ya bajó de %3$s.</string>
+    <string name="notification_channel_description">Recordatorios del tipo de cambio (10:00 y 20:00)</string>
+    <string name="notification_title_bar">Monitor de divisas</string>
+    <string name="notification_line_changed">El %1$s cambió de %2$s a %3$s.</string>
+    <string name="notification_line_stable_above">El %1$s está %2$s, aún no baja de %3$s.</string>
+    <string name="notification_line_stable_below">El %1$s está %2$s y ya bajó de %3$s.</string>
 
     <string name="inbox_open">Abrir bandeja interna de notificaciones</string>
     <string name="inbox_title">Notificaciones internas</string>

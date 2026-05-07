@@ -38,32 +38,58 @@ class DolarWorker(context: Context, params: WorkerParameters) : Worker(context, 
         }
 
         val keyLast = AppPreferences.KEY_LAST_NOTIFIED_PRICE_PREFIX + moneda
-        val previo = prefs.getString(keyLast, null)?.toDoubleOrNull()
-        val cambio = previo == null || abs(previo - precio) > EPSILON
+        val anterior = prefs.getString(keyLast, null)?.toDoubleOrNull()
+        val huboMovimiento = anterior != null && abs(anterior - precio) > EPSILON
 
         val precioTexto = ctx.getString(R.string.price_format, precio)
         val umbralTexto = ctx.getString(R.string.price_format, umbral)
-        val titulo = if (cambio) {
-            ctx.getString(R.string.notification_title_changed, moneda)
-        } else {
-            ctx.getString(R.string.notification_title_unchanged, moneda)
-        }
-        val cuerpo = if (precio < umbral) {
-            ctx.getString(R.string.notification_body_below_threshold, moneda, precioTexto, umbralTexto)
-        } else {
-            ctx.getString(R.string.notification_body_daily_status, moneda, precioTexto, umbralTexto)
+        val tituloBarra = ctx.getString(R.string.notification_title_bar)
+
+        val cuerpoSistema = when {
+            huboMovimiento && anterior != null -> {
+                val anteriorTexto = ctx.getString(R.string.price_format, anterior)
+                ctx.getString(R.string.notification_line_changed, moneda, anteriorTexto, precioTexto)
+            }
+
+            precio < umbral -> ctx.getString(
+                R.string.notification_line_stable_below,
+                moneda,
+                precioTexto,
+                umbralTexto
+            )
+
+            else -> ctx.getString(
+                R.string.notification_line_stable_above,
+                moneda,
+                precioTexto,
+                umbralTexto
+            )
         }
 
-        mostrarNotificacion(ctx, titulo, cuerpo)
-        InAppNotificationStore.add(ctx, "$titulo - $cuerpo")
+        val cuerpoLargo = buildString {
+            append(cuerpoSistema)
+            if (huboMovimiento) {
+                append("\n")
+                append(
+                    if (precio < umbral) {
+                        ctx.getString(R.string.notification_line_stable_below, moneda, precioTexto, umbralTexto)
+                    } else {
+                        ctx.getString(R.string.notification_line_stable_above, moneda, precioTexto, umbralTexto)
+                    }
+                )
+            }
+        }
+
+        mostrarNotificacion(ctx, tituloBarra, cuerpoSistema, cuerpoLargo)
+        InAppNotificationStore.add(ctx, cuerpoLargo.trim())
         prefs.edit().putString(keyLast, precio.toString()).apply()
 
-        Log.d(TAG, "Diaria $moneda: $precioTexto (umbral $umbralTexto), cambio=$cambio")
+        Log.d(TAG, "Diaria $moneda: $precioTexto (umbral $umbralTexto), movimiento=$huboMovimiento")
         DailyNotificationScheduler.scheduleNext(ctx)
         return Result.success()
     }
 
-    private fun mostrarNotificacion(ctx: Context, title: String, body: String) {
+    private fun mostrarNotificacion(ctx: Context, title: String, summary: String, bigText: String) {
         val manager = ctx.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
         val channelId = ctx.getString(R.string.notification_channel_id)
         val soundUri = Uri.parse(
@@ -99,8 +125,8 @@ class DolarWorker(context: Context, params: WorkerParameters) : Worker(context, 
         val notification = NotificationCompat.Builder(ctx, channelId)
             .setSmallIcon(android.R.drawable.ic_dialog_info)
             .setContentTitle(title)
-            .setContentText(body)
-            .setStyle(NotificationCompat.BigTextStyle().bigText(body))
+            .setContentText(summary)
+            .setStyle(NotificationCompat.BigTextStyle().bigText(bigText.trim()))
             .setPriority(NotificationCompat.PRIORITY_HIGH)
             .setAutoCancel(true)
             .setContentIntent(pendingIntent)
