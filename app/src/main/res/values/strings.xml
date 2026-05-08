@@ -31,6 +31,12 @@
     <string name="inbox_force_system_notify">Mostrar esta alerta de cambio como notificación del sistema</string>
     <string name="inbox_force_sent_hint">Notificación enviada</string>
     <string name="inbox_log_ui_error">Error en pantalla principal: %1$s</string>
+    <string name="inbox_filter_label">Filtrar</string>
+    <string name="inbox_filter_all">Todas</string>
+    <string name="inbox_filter_change">Cambio de precio</string>
+    <string name="inbox_filter_stable_above">Por encima del umbral</string>
+    <string name="inbox_filter_below">Por debajo del umbral</string>
+    <string name="inbox_filter_error">Errores</string>
 
     <string name="log_alert_fired">Alerta activada. Precio %1$.4f por debajo del umbral %2$.4f</string>
     <string name="log_no_alert">Precio: %1$.4f. No se requiere notificación.</string>

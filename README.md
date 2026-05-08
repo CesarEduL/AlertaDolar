@@ -8,7 +8,9 @@ Aplicación Android para **monitorizar el tipo de cambio USD → PEN** (y otras 
 - **Precio en soles (PEN)** en tiempo real.
 - **Histórico 7 días** con mínimo y máximo usando Frankfurter v2.
 - **Umbral configurable**: el usuario indica “notificar cuando baje de…”.
-- **Notificaciones en segundo plano** con WorkManager (cada 12 horas) y **sonido personalizado**.
+- **Notificaciones programadas en segundo plano** con WorkManager a las **10:00** y **20:00** (hora local del dispositivo), con **sonido personalizado**.
+- **Bandeja interna** de historial con **filtro por tipo** (cambio de precio, sobre/debajo del umbral, errores).
+- **Mantenimiento del historial**: cada **domingo**, tras la notificación de las **20:00**, se elimina automáticamente **un registro** (el más antiguo), si hay más de una entrada — borrado progresivo para no saturar la lista.
 
 ### Tecnologías
 
@@ -34,6 +36,19 @@ Aplicación Android para **monitorizar el tipo de cambio USD → PEN** (y otras 
 git clone https://github.com/<tu-usuario>/AlertaDolar.git
 cd AlertaDolar
 ```
+
+Si partes de una carpeta sin historial Git, inicializa el repo y enlaza el remoto:
+
+```bash
+git init
+git remote add origin https://github.com/<tu-usuario>/AlertaDolar.git
+git add .
+git commit -m "Initial commit"
+git branch -M main
+git push -u origin main
+```
+
+El archivo **`.gitignore`** en la raíz excluye `local.properties`, cachés de Gradle/Android Studio, firmas (`*.jks`, `*.keystore`) y artefactos habituales; revisa que no añadas claves ni keystores al commit.
 
 Abre la carpeta raíz (`AlertaDolar`) en Android Studio y espera a que sincronice Gradle.
 
@@ -61,7 +76,13 @@ La clave **no se incluye en el repositorio**; se inyecta a través de `local.pro
   Pantalla principal: selector de moneda, precio actual, métricas 7d y configuración de umbral.
 
 - `app/src/main/java/com/waytolearn/alertadolar/DolarWorker.kt`  
-  Worker periódico (WorkManager) que consulta el tipo de cambio y envía la notificación si el precio está por debajo del umbral. Configura el **canal de notificación** y el **sonido personalizado**.
+  Worker encadenado por `DailyNotificationScheduler`: obtiene el precio, muestra la **notificación del sistema** y guarda una copia en el **historial interno** (`InAppNotificationStore`), con tipo según hubo movimiento, umbral o error.
+
+- `app/src/main/java/com/waytolearn/alertadolar/DailyNotificationScheduler.kt`  
+  Programa el siguiente disparo a las **10:00** o **20:00** locales y pasa la hora prevista al worker (p. ej. para el mantenimiento del domingo por la noche).
+
+- `app/src/main/java/com/waytolearn/alertadolar/InAppNotificationStore.kt`  
+  Persistencia JSON del historial interno; en **domingo 20:00** (tras una ejecución programada exitosa con notificación) puede **quitar el registro más antiguo** si la lista tiene más de un elemento.
 
 - `app/src/main/java/com/waytolearn/alertadolar/ExchangeRateRepository.kt`  
   Capa de acceso a datos de tipo de cambio. Intenta primero ExchangeRate-API (si hay clave) y usa Frankfurter v2 como respaldo e histórico.
@@ -108,7 +129,17 @@ Los archivos se generan en:
 
 ## Notificaciones y sonido personalizado
 
-- El canal de notificación se define en `DolarWorker.kt` con un `NotificationChannel` (Android 8+).
+### Horario
+
+Las alertas automáticas se programan **dos veces al día**, a las **10:00** y **20:00** en la **zona horaria local del dispositivo** (no UTC fijo). La lógica está en `DailyNotificationScheduler.kt` (`targetHours`: 10 y 20) y usa un `OneTimeWorkRequest` encadenado para el siguiente intervalo.
+
+### Historial interno y domingo por la noche
+
+Las mismas ejecuciones pueden dejar un texto en la bandeja interna de la app. **Solo los domingos**, cuando la corrida corresponde al turno de las **20:00** y la notificación se envió con éxito, la app **elimina el registro más antiguo** del historial interno **si había más de una entrada**; así el listado no crece sin límite. El sábado por la noche **no** aplica este borrado.
+
+### Canal y audio
+
+- El canal de notificación se define en `CurrencyNotificationHelper` / recursos asociados (Android 8+).
 - El identificador del canal está en `res/values/strings.xml` (`notification_channel_id`).
 - El sonido se toma del recurso `raw` `alerta_dolar.ogg` y se asigna al canal usando `AudioAttributes` (`USAGE_NOTIFICATION`).
 - En dispositivos **anteriores a Android 8**, el sonido se aplica directamente al `NotificationCompat.Builder`.

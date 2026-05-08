@@ -10,16 +10,19 @@ import java.util.Locale
 data class InAppNotification(
     val timestampMs: Long,
     val message: String,
-    val isPriceChange: Boolean
-)
+    val type: InternalNotificationType
+) {
+    val isPriceChange: Boolean get() = type == InternalNotificationType.PRICE_CHANGE
+}
 
 object InAppNotificationStore {
     private const val MAX_ITEMS = 300
 
-    /**
-     * Nuevas entradas guardan explícito [priceChange].
-     */
-    fun add(context: Context, message: String, priceChange: Boolean = false) {
+    fun add(
+        context: Context,
+        message: String,
+        type: InternalNotificationType
+    ) {
         val prefs = context.getSharedPreferences(AppPreferences.FILE_NAME, Context.MODE_PRIVATE)
         val current = JSONArray(prefs.getString(AppPreferences.KEY_INTERNAL_NOTIFICATIONS_JSON, "[]"))
         val updated = JSONArray()
@@ -27,7 +30,11 @@ object InAppNotificationStore {
         val entry = JSONObject()
             .put("timestamp", System.currentTimeMillis())
             .put("message", message)
-            .put("priceChange", priceChange)
+            .put("type", type.storageKey)
+            .put(
+                "priceChange",
+                type == InternalNotificationType.PRICE_CHANGE
+            )
         updated.put(entry)
 
         for (i in 0 until current.length()) {
@@ -48,17 +55,37 @@ object InAppNotificationStore {
         for (i in 0 until json.length()) {
             val row = json.getJSONObject(i)
             val message = row.optString("message", "")
+            val typeKey = when {
+                !row.has("type") || JSONObject.NULL.equals(row.opt("type")) -> null
+                else -> row.optString("type").takeIf { it.isNotEmpty() }
+            }
             val isPc = row.optNullableBoolean("priceChange")
-                ?: messageLooksLikePriceChange(message)
+            val type = InternalNotificationType.fromStorageOrInfer(typeKey, message, isPc)
             result.add(
                 InAppNotification(
                     timestampMs = row.optLong("timestamp", 0L),
                     message = message,
-                    isPriceChange = isPc
+                    type = type
                 )
             )
         }
         return result
+    }
+
+    /**
+     * Elimina el registro **más antiguo** (último índice del JSON: orden reciente primero).
+     * No hace nada si hay 0 o 1 filas (no borra la única entrada).
+     */
+    fun removeOldest(context: Context) {
+        val prefs = context.getSharedPreferences(AppPreferences.FILE_NAME, Context.MODE_PRIVATE)
+        val arr = JSONArray(prefs.getString(AppPreferences.KEY_INTERNAL_NOTIFICATIONS_JSON, "[]"))
+        if (arr.length() <= 1) return
+        val newArr = JSONArray()
+        for (i in 0 until arr.length() - 1) {
+            newArr.put(arr.getJSONObject(i))
+        }
+        prefs.edit().putString(AppPreferences.KEY_INTERNAL_NOTIFICATIONS_JSON, newArr.toString())
+            .apply()
     }
 
     private fun JSONObject.optNullableBoolean(key: String): Boolean? {
@@ -67,13 +94,6 @@ object InAppNotificationStore {
             JSONObject.NULL.equals(opt(key)) -> null
             else -> getBoolean(key)
         }
-    }
-
-    /** Compatibilidad con entradas viejas antes de tener el flag guardado en JSON. */
-    fun messageLooksLikePriceChange(message: String): Boolean {
-        if (message.contains(" cambió de ")) return true
-        if (message.contains("(cambió)")) return true
-        return false
     }
 
     fun clear(context: Context) {
@@ -87,7 +107,6 @@ object InAppNotificationStore {
         return "[$time] ${item.message}"
     }
 
-    /** Primera línea para resumen compacto del sistema Android. */
     fun summaryFromStoredMessage(fullMessage: String): String =
         fullMessage.trim().substringBefore('\n').ifBlank { fullMessage.trim() }
 }

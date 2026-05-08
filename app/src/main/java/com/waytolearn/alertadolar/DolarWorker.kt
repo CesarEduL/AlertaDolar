@@ -4,6 +4,7 @@ import android.content.Context
 import android.util.Log
 import androidx.work.Worker
 import androidx.work.WorkerParameters
+import java.util.Calendar
 import kotlin.math.abs
 
 class DolarWorker(context: Context, params: WorkerParameters) : Worker(context, params) {
@@ -22,7 +23,7 @@ class DolarWorker(context: Context, params: WorkerParameters) : Worker(context, 
         if (precio == null) {
             val msg = ctx.getString(R.string.log_price_unavailable)
             Log.w(TAG, msg)
-            InAppNotificationStore.add(ctx, msg)
+            InAppNotificationStore.add(ctx, msg, InternalNotificationType.ERROR)
             DailyNotificationScheduler.scheduleNext(ctx)
             return Result.success()
         }
@@ -85,7 +86,20 @@ class DolarWorker(context: Context, params: WorkerParameters) : Worker(context, 
             cuerpoLargo.trim(),
             CurrencyNotificationHelper.NOTIFICATION_ID_DAILY_SCHEDULE
         )
-        InAppNotificationStore.add(ctx, cuerpoLargo.trim(), huboMovimiento)
+        val internalType = when {
+            huboMovimiento -> InternalNotificationType.PRICE_CHANGE
+            precio < umbral -> InternalNotificationType.PRICE_BELOW_THRESHOLD
+            else -> InternalNotificationType.PRICE_STABLE_ABOVE
+        }
+        InAppNotificationStore.add(ctx, cuerpoLargo.trim(), internalType)
+
+        val scheduledHour = inputData.getInt(DailyNotificationScheduler.KEY_SCHEDULED_HOUR, -1)
+        val cal = Calendar.getInstance()
+        val isSundayEveningMaintenance =
+            cal.get(Calendar.DAY_OF_WEEK) == Calendar.SUNDAY && scheduledHour == 20
+        if (isSundayEveningMaintenance) {
+            InAppNotificationStore.removeOldest(ctx)
+        }
 
         prefs.edit().putString(keyLast, precio.toString()).apply()
 

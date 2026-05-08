@@ -116,7 +116,8 @@ class MainActivity : AppCompatActivity() {
             } catch (e: Exception) {
                 InAppNotificationStore.add(
                     this@MainActivity,
-                    getString(R.string.inbox_log_ui_error, e.message ?: getString(R.string.error_network))
+                    getString(R.string.inbox_log_ui_error, e.message ?: getString(R.string.error_network)),
+                    InternalNotificationType.ERROR
                 )
                 withContext(Dispatchers.Main) {
                     txtPrecioActual.text = getString(R.string.error_title)

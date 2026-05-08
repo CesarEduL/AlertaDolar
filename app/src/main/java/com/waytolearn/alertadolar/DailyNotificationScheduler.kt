@@ -6,10 +6,13 @@ import androidx.work.ExistingWorkPolicy
 import androidx.work.NetworkType
 import androidx.work.OneTimeWorkRequestBuilder
 import androidx.work.WorkManager
+import androidx.work.workDataOf
 import java.util.Calendar
 import java.util.concurrent.TimeUnit
 
 object DailyNotificationScheduler {
+
+    const val KEY_SCHEDULED_HOUR = "scheduled_hour"
 
     private const val WORK_NAME = "DailyCurrencyStatusWorker"
     private val targetHours = intArrayOf(10, 20)
@@ -23,9 +26,12 @@ object DailyNotificationScheduler {
             .setRequiredNetworkType(NetworkType.CONNECTED)
             .build()
 
+        val scheduledHour = next.get(Calendar.HOUR_OF_DAY)
+
         val request = OneTimeWorkRequestBuilder<DolarWorker>()
             .setConstraints(constraints)
             .setInitialDelay(delayMs, TimeUnit.MILLISECONDS)
+            .setInputData(workDataOf(KEY_SCHEDULED_HOUR to scheduledHour))
             .build()
 
         WorkManager.getInstance(context).enqueueUniqueWork(
