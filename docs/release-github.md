@@ -214,6 +214,18 @@ git push origin v1.0.0
 
 El prefijo **`v`** es obligatorio: el workflow solo se activa con etiquetas que empiecen por `v` (`v1.0.0`, `v1.0.1`, etc.).
 
+> **Importante:** Una etiqueta queda fijada al **commit** en el que se creó. Si corriges el workflow en `main` pero **Re-run** un release antiguo o la etiqueta no se movió, Actions seguirá usando el YAML viejo. Borra y vuelve a crear la etiqueta sobre el último `main`, o publica `v1.0.1`:
+
+```bash
+git push origin main
+git tag -d v1.0.0
+git push origin :refs/tags/v1.0.0
+git tag v1.0.0
+git push origin v1.0.0
+```
+
+(O crea directamente `v1.0.1` si ya publicaste `v1.0.0` en GitHub Releases.)
+
 ### Opción B — Desde la interfaz de GitHub
 
 1. En el repo, ve a **Releases** → **Draft a new release** (o **New release**).
@@ -327,7 +339,7 @@ En local, el mismo valor va en `local.properties` (ver sección [¿Dónde van la
 |----------|-------------|
 | `-keyalg` no se reconoce en PowerShell | Pegaste solo parte del comando; debe empezar por `keytool` (ver paso 1). |
 | `keytool` no se reconoce | Usa la ruta completa de Android Studio (paso 1). |
-| `./gradlew: Permission denied` (exit 126) | En Windows Git puede quitar el permiso de ejecución; el workflow ya hace `chmod +x gradlew`. Sube los cambios del workflow y vuelve a ejecutar Actions. |
+| `./gradlew: Permission denied` (exit 126) | Suele pasar en Windows o si la **etiqueta apunta a un commit antiguo** (sin el fix del workflow). Sube el último código, **recrea la etiqueta** sobre `main` (ver abajo) o usa **Run workflow** desde Actions. El workflow usa `bash gradlew` para evitar este error. |
 | Workflow no arranca | La etiqueta debe ser `v*` (p. ej. `v1.0.0`, no `1.0.0`). |
 | Error `RELEASE_KEYSTORE_BASE64` | Falta el secret o el Base64 está truncado. |
 | Error de firma | Alias o contraseñas incorrectas en los secrets. |
