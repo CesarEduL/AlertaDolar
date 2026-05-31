@@ -216,11 +216,65 @@ El prefijo **`v`** es obligatorio: el workflow solo se activa con etiquetas que 
 
 ### Opción B — Desde la interfaz de GitHub
 
-1. **Releases** → **Draft a new release**.
-2. En **Choose a tag**, escribe `v1.0.0` y créala sobre `main`.
-3. Publica el release.
+1. En el repo, ve a **Releases** → **Draft a new release** (o **New release**).
+2. **Tag:** escribe `v1.0.0` y elige **Create new tag: v1.0.0 on publish** (o créala sobre `main` si ya existe el selector).
+3. **Target:** deja **`main`** (o la rama desde la que quieres publicar).
+4. **Release title:** título visible del release (ejemplo abajo).
+5. **Release notes:** descripción en Markdown (ejemplo abajo). Opcionalmente pulsa **Generate release notes** para que GitHub añada commits/PRs recientes; puedes combinarlo con el texto sugerido.
+6. **No hace falta subir el APK a mano** en “Attach binaries”: el workflow **Release APK** lo adjuntará cuando termine (si los secrets están configurados).
+7. Pulsa **Publish release**.
 
-Si la etiqueta se crea al publicar, también se dispara el workflow.
+Al publicar, se crea la etiqueta `v1.0.0` y se dispara el workflow. Cuando Actions termine en verde, recarga la página del release: debería aparecer **`app-release.apk`**.
+
+#### Texto sugerido — Release title
+
+Copia y pega (cambia la versión si publicas otra):
+
+```text
+AlertaDolar v1.0.0
+```
+
+#### Texto sugerido — Release notes
+
+Copia y pega en el cuadro **Describe this release** (pestaña **Write**):
+
+```markdown
+## AlertaDolar v1.0.0
+
+Primera versión publicada de **AlertaDolar**: monitor de tipo de cambio a soles (PEN) con alertas programadas.
+
+### Descarga e instalación
+
+1. Descarga **`app-release.apk`** en la sección *Assets* de este release (aparece cuando termina el workflow de GitHub Actions).
+2. En el teléfono Android, abre el archivo e instala la app.
+3. Si el sistema lo pide, permite instalar desde “orígenes desconocidos” o desde el navegador/gestor de archivos que uses.
+
+### Qué incluye esta versión
+
+- Monitor de divisas (USD, EUR, GBP, BRL, CLP, …) con precio en **PEN**.
+- Histórico de **7 días** (mínimo y máximo).
+- **Umbral configurable**: notificación cuando el precio baje del valor indicado.
+- Alertas automáticas a las **10:00** y **20:00** (hora local), con sonido personalizado.
+- Bandeja interna de historial con filtro por tipo de evento.
+
+### Requisitos
+
+- Android **7.0** o superior (API 24+).
+
+### Notas
+
+- La app puede usar Frankfurter como fuente de tipos de cambio; ExchangeRate-API es opcional según cómo se haya compilado el APK.
+- Para reportar problemas, abre un issue en el repositorio.
+```
+
+Para versiones siguientes (`v1.0.1`, `v1.1.0`, …), cambia el número en el título y en el encabezado de las notas, y añade una sección **Cambios** con lo nuevo, por ejemplo:
+
+```markdown
+### Cambios
+
+- Descripción del cambio 1
+- Descripción del cambio 2
+```
 
 ### Opción C — Ejecución manual
 
