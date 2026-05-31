@@ -49,6 +49,9 @@ jobs:
           fi
           echo "$RELEASE_KEYSTORE_BASE64" | base64 -d > "${{ github.workspace }}/release.keystore"
 
+      - name: Make gradlew executable
+        run: chmod +x gradlew
+
       - name: Build signed release APK
         env:
           EXCHANGE_RATE_API_KEY: ${{ secrets.EXCHANGE_RATE_API_KEY }}

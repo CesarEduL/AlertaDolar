@@ -327,6 +327,7 @@ En local, el mismo valor va en `local.properties` (ver sección [¿Dónde van la
 |----------|-------------|
 | `-keyalg` no se reconoce en PowerShell | Pegaste solo parte del comando; debe empezar por `keytool` (ver paso 1). |
 | `keytool` no se reconoce | Usa la ruta completa de Android Studio (paso 1). |
+| `./gradlew: Permission denied` (exit 126) | En Windows Git puede quitar el permiso de ejecución; el workflow ya hace `chmod +x gradlew`. Sube los cambios del workflow y vuelve a ejecutar Actions. |
 | Workflow no arranca | La etiqueta debe ser `v*` (p. ej. `v1.0.0`, no `1.0.0`). |
 | Error `RELEASE_KEYSTORE_BASE64` | Falta el secret o el Base64 está truncado. |
 | Error de firma | Alias o contraseñas incorrectas en los secrets. |
