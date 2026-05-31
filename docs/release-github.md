@@ -13,7 +13,7 @@ El workflow ya está en [`.github/workflows/release.yml`](../.github/workflows/r
 1. Generas un **keystore** de firma (una sola vez).
 2. Guardas los datos sensibles como **Secrets** en GitHub (no uses `.env` en el repo).
 3. Subes el código y creas una **etiqueta** (p. ej. `v1.0.0`).
-4. GitHub Actions compila, firma y adjunta `app-release.apk` al release.
+4. GitHub Actions compila, firma y adjunta `AlertaDolar-v{version}-release.apk` al release.
 
 ---
 
@@ -236,7 +236,7 @@ git push origin v1.0.0
 6. **No hace falta subir el APK a mano** en “Attach binaries”: el workflow **Release APK** lo adjuntará cuando termine (si los secrets están configurados).
 7. Pulsa **Publish release**.
 
-Al publicar, se crea la etiqueta `v1.0.0` y se dispara el workflow. Cuando Actions termine en verde, recarga la página del release: debería aparecer **`app-release.apk`**.
+Al publicar, se crea la etiqueta `v1.0.0` y se dispara el workflow. Cuando Actions termine en verde, recarga la página del release: debería aparecer **`AlertaDolar-v1.0-release.apk`** (el nombre usa `versionName` de `app/build.gradle.kts`).
 
 #### Texto sugerido — Release title
 
@@ -257,7 +257,7 @@ Primera versión publicada de **AlertaDolar**: monitor de tipo de cambio a soles
 
 ### Descarga e instalación
 
-1. Descarga **`app-release.apk`** en la sección *Assets* de este release (aparece cuando termina el workflow de GitHub Actions).
+1. Descarga **`AlertaDolar-v1.0-release.apk`** en la sección *Assets* de este release (aparece cuando termina el workflow de GitHub Actions).
 2. En el teléfono Android, abre el archivo e instala la app.
 3. Si el sistema lo pide, permite instalar desde “orígenes desconocidos” o desde el navegador/gestor de archivos que uses.
 
@@ -302,7 +302,7 @@ Para versiones siguientes (`v1.0.1`, `v1.1.0`, …), cambia el número en el tí
 
 1. En GitHub, abre **Actions** y entra en la ejecución **Release APK**.
 2. Si termina en verde, ve a **Releases** en el repo.
-3. En el release verás el asset **`app-release.apk`**. Descárgalo e instálalo en el dispositivo (habilita “Orígenes desconocidos” si Android lo pide).
+3. En el release verás el asset **`AlertaDolar-v1.0-release.apk`**. Descárgalo e instálalo en el dispositivo (habilita “Orígenes desconocidos” si Android lo pide).
 
 ---
 

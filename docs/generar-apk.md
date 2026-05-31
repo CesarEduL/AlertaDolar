@@ -9,7 +9,7 @@
 3. Menú **Build → Build Bundle(s) / APK(s) → Build APK(s)**.
 4. Al finalizar, Android Studio mostrará una notificación; haz clic en **locate** para abrir la carpeta:
    - APK **debug**: `app/build/outputs/apk/debug/app-debug.apk`
-   - APK **release**: `app/build/outputs/apk/release/app-release.apk`
+   - APK **release**: `app/build/outputs/apk/release/AlertaDolar-v{versionName}-release.apk` (p. ej. `AlertaDolar-v1.0-release.apk`)
 
 Para publicar en tiendas o distribuir release firmado, configura la firma en `local.properties` (ver abajo) o usa **Build → Generate Signed Bundle / APK…**.
 
@@ -25,7 +25,7 @@ En la raíz del proyecto:
 Los archivos se generan en:
 
 - `app/build/outputs/apk/debug/app-debug.apk`
-- `app/build/outputs/apk/release/app-release.apk`
+- `app/build/outputs/apk/release/AlertaDolar-v1.0-release.apk` (según `versionName` en `app/build.gradle.kts`)
 
 ## Firma release en local (opcional)
 

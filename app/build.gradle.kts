@@ -1,3 +1,4 @@
+import com.android.build.gradle.internal.api.BaseVariantOutputImpl
 import java.util.Properties
 
 plugins {
@@ -73,6 +74,13 @@ android {
     }
     kotlinOptions {
         jvmTarget = "1.8"
+    }
+
+    applicationVariants.configureEach {
+        outputs.configureEach {
+            val apkName = "AlertaDolar-v${versionName}-release.apk"
+            (this as BaseVariantOutputImpl).outputFileName = apkName
+        }
     }
 }
 
