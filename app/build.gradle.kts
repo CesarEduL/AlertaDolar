@@ -5,6 +5,21 @@ plugins {
     alias(libs.plugins.kotlin.android)
 }
 
+val localProperties = Properties().apply {
+    val localFile = rootProject.file("local.properties")
+    if (localFile.exists()) {
+        localFile.inputStream().use { load(it) }
+    }
+}
+
+fun propertyOrEnv(key: String): String =
+    localProperties.getProperty(key)?.trim().orEmpty().ifBlank {
+        System.getenv(key)?.trim().orEmpty()
+    }
+
+fun String.escapeForBuildConfig(): String =
+    replace("\\", "\\\\").replace("\"", "\\\"")
+
 android {
     namespace = "com.waytolearn.alertadolar"
     compileSdk = 35
@@ -22,16 +37,21 @@ android {
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
 
-        // Opcional: en local.properties añade EXCHANGE_RATE_API_KEY=tu_clave para exchangerate-api.com
-        val localProperties = Properties()
-        val localFile = rootProject.file("local.properties")
-        if (localFile.exists()) {
-            localFile.inputStream().use { localProperties.load(it) }
-        }
-        val exchangeKey = localProperties.getProperty("EXCHANGE_RATE_API_KEY", "")
-            .replace("\\", "\\\\")
-            .replace("\"", "\\\"")
+        // local.properties o variable de entorno EXCHANGE_RATE_API_KEY (p. ej. en GitHub Actions)
+        val exchangeKey = propertyOrEnv("EXCHANGE_RATE_API_KEY").escapeForBuildConfig()
         buildConfigField("String", "EXCHANGE_RATE_API_KEY", "\"$exchangeKey\"")
+    }
+
+    signingConfigs {
+        create("release") {
+            val keystorePath = propertyOrEnv("RELEASE_KEYSTORE_PATH")
+            if (keystorePath.isNotBlank()) {
+                storeFile = file(keystorePath)
+                storePassword = propertyOrEnv("RELEASE_KEYSTORE_PASSWORD")
+                keyAlias = propertyOrEnv("RELEASE_KEY_ALIAS")
+                keyPassword = propertyOrEnv("RELEASE_KEY_PASSWORD")
+            }
+        }
     }
 
     buildTypes {
@@ -41,6 +61,10 @@ android {
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"
             )
+            val keystorePath = propertyOrEnv("RELEASE_KEYSTORE_PATH")
+            if (keystorePath.isNotBlank() && file(keystorePath).exists()) {
+                signingConfig = signingConfigs.getByName("release")
+            }
         }
     }
     compileOptions {

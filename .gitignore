@@ -24,6 +24,7 @@ Thumbs.db
 # Signing material — never commit
 *.jks
 *.keystore
+release.keystore
 
 # Built artifacts if copied outside build/
 *.apk
